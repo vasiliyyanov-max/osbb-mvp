@@ -4,19 +4,15 @@ import { Ticket } from '@/types/ticket';
 let tickets: Ticket[] = [];
 let ticketCounter = 0;
 
-// Генерація номера заявки: день + порядковий номер (1501, 1502, etc.)
+// Генерація номера заявки: ММДД01, ММДД02, etc.
 const generateTicketId = (): string => {
   const today = new Date();
-  const day = today.getDate(); // 1-31
+  const day = today.getDate();
   const month = today.getMonth() + 1;
   
-  // Формуємо префікс: ММДД (наприклад, 0515 для 15 травня)
   const prefix = `${month.toString().padStart(2, '0')}${day.toString().padStart(2, '0')}`;
-  
-  // Збільшуємо лічильник
   ticketCounter++;
   
-  // Формуємо номер: ММДД + порядковий номер (051501, 051502, etc.)
   return `${prefix}${ticketCounter.toString().padStart(2, '0')}`;
 };
 
@@ -31,18 +27,19 @@ export const ticketsStore = {
     return tickets.find(t => t.id === id);
   },
 
-  create: (data: Omit<Ticket, 'id' | 'status' | 'created_at' | 'classification'>) => {
+  create: (data: { text: string; apartment: string; phone?: string }) => {
     const newTicket: Ticket = {
-      ...data,
       id: generateTicketId(),
+      text: data.text,              // ✅ Зберігаємо оригінальний текст
+      apartment: data.apartment,
+      phone: data.phone,
+      // Дефолтні значення для AI-полів (будуть оновлені пізніше)
+      type: 'інфо_запит',
+      priority: 'низький',
+      summary: data.text.slice(0, 50),
+      object: null,
       status: 'нова',
       created_at: new Date().toISOString(),
-      classification: {
-        type: '',
-        priority: 'низький',
-        summary: data.text,
-        object: ''
-      }
     };
 
     tickets.push(newTicket);
@@ -58,16 +55,18 @@ export const ticketsStore = {
     return null;
   },
 
-  updateClassification: (id: string, classification: Ticket['classification']) => {
+  updateClassification: (id: string, classification: { type: string; priority: string; summary: string; object: string }) => {
     const ticket = tickets.find(t => t.id === id);
     if (ticket) {
-      ticket.classification = classification;
+      ticket.type = classification.type as Ticket['type'];
+      ticket.priority = classification.priority as Ticket['priority'];
+      ticket.summary = classification.summary;
+      ticket.object = classification.object;
       return ticket;
     }
     return null;
   },
 
-  // Для тестування - очистка
   clear: () => {
     tickets = [];
     ticketCounter = 0;
