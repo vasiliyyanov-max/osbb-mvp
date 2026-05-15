@@ -302,63 +302,72 @@ export default function AdminDashboard() {
                     const p = { 'високий': 0, 'середній': 1, 'низький': 2 };
                     return (p[a.classification.priority as keyof typeof p] || 3) - (p[b.classification.priority as keyof typeof p] || 3);
                   })
-                  .map((ticket) => (
-                  <tr key={ticket.id} className="group hover:bg-blue-50/50 transition-colors">
-                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                      {formatDate(ticket.created_at)}
-                    </td>
-                    <td className="px-4 py-3 text-xs font-mono font-semibold text-gray-700 whitespace-nowrap">
-                      {ticket.id}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-start gap-2">
-                        <div>
-                          <p className="text-xs font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                            {ticket.classification.summary}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            Кв: <span className="font-mono font-medium">{ticket.apartment || '—'}</span>
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    
-                    <td className="px-4 py-3">
-                      <PriorityBadge priority={ticket.classification.priority} />
-                    </td>
+                  .map((ticket) => {
+  // ✅ Безпечний фолбек, якщо AI ще не встиг класифікувати
+  const c = ticket.classification || {
+    type: 'Інфо_запит',
+    priority: 'низький',
+    summary: 'Очікує обробки',
+    object: '—'
+  };
 
-                    <td className="px-4 py-3">
-                      <div className="group/tooltip relative">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100 cursor-help">
-                          🤖 {ticket.classification.type}
-                        </span>
-                        {/* Tooltip */}
-                        <div className="absolute left-0 bottom-full mb-1 hidden group-hover/tooltip:block w-64 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-20">
-                          <div className="font-semibold mb-1 text-purple-300">Повний текст заявки:</div>
-                          <div className="text-gray-100">{ticket.text}</div>
-                          <div className="absolute left-2 bottom-0 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
-                        </div>
-                      </div>
-                    </td>
+  return (
+    <tr key={ticket.id} className="group hover:bg-blue-50/50 transition-colors">
+      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+        {formatDate(ticket.created_at)}
+      </td>
+      <td className="px-4 py-3 text-xs font-mono font-semibold text-gray-700 whitespace-nowrap">
+        {ticket.id}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-start gap-2">
+          <div>
+            <p className="text-xs font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+              {c.summary}
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Кв: <span className="font-mono font-medium">{ticket.apartment || '—'}</span>
+            </p>
+          </div>
+        </div>
+      </td>
+      
+      <td className="px-4 py-3">
+        <PriorityBadge priority={c.priority} />
+      </td>
 
-                    <td className="px-4 py-3">
-                      <select
-                        value={ticket.status}
-                        onChange={(e) => updateStatus(ticket.id, e.target.value as Ticket['status'])}
-                        className={`text-xs font-semibold py-1 pl-2 pr-6 rounded border-0 cursor-pointer focus:ring-2 focus:ring-blue-500 appearance-none bg-no-repeat bg-[right_0.3rem_center] bg-[length:0.8em_0.8em] ${
-                          ticket.status === 'закрита' ? 'bg-green-50 text-green-700' :
-                          ticket.status === 'в_роботі' ? 'bg-yellow-50 text-yellow-700' :
-                          'bg-gray-50 text-gray-600'
-                        }`}
-                        style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
-                      >
-                        <option value="нова">Нова</option>
-                        <option value="в_роботі">В роботі</option>
-                        <option value="закрита">Закрита</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))}
+      <td className="px-4 py-3">
+        <div className="group/tooltip relative">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100 cursor-help">
+            🤖 {c.type}
+          </span>
+          <div className="absolute left-0 bottom-full mb-1 hidden group-hover/tooltip:block w-64 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-20">
+            <div className="font-semibold mb-1 text-purple-300">Повний текст заявки:</div>
+            <div className="text-gray-100">{ticket.text || '—'}</div>
+            <div className="absolute left-2 bottom-0 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+          </div>
+        </div>
+      </td>
+
+      <td className="px-4 py-3">
+        <select
+          value={ticket.status}
+          onChange={(e) => updateStatus(ticket.id, e.target.value as Ticket['status'])}
+          className={`text-xs font-semibold py-1 pl-2 pr-6 rounded border-0 cursor-pointer focus:ring-2 focus:ring-blue-500 appearance-none bg-no-repeat bg-[right_0.3rem_center] bg-[length:0.8em_0.8em] ${
+            ticket.status === 'закрита' ? 'bg-green-50 text-green-700' :
+            ticket.status === 'в_роботі' ? 'bg-yellow-50 text-yellow-700' :
+            'bg-gray-50 text-gray-600'
+          }`}
+          style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
+        >
+          <option value="нова">Нова</option>
+          <option value="в_роботі">В роботі</option>
+          <option value="закрита">Закрита</option>
+        </select>
+      </td>
+    </tr>
+  );
+})}
               </tbody>
             </table>
             
