@@ -139,7 +139,7 @@ export default function AdminDashboard() {
             <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
               Панель <span className="text-blue-600">ОСББ</span>
             </h1>
-            <p className="text-gray-500 mt-1 text-sm">AI-асистент керування заявками</p>
+            <p className="text-sm text-gray-600 mt-0.5">адреса: вул. Садова будинок 15</p>
           </div>
           <div className="flex gap-2">
             <button 
@@ -196,82 +196,84 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* METRICS CARDS - VERY COMPACT (2x compression) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <StatCard 
-            title="Всього заявок" 
-            value={stats.total} 
-            icon={<Activity className="text-blue-500 w-3.5 h-3.5" />} 
-            color="bg-blue-50"
-            ultraCompact
-          />
-          <StatCard 
-            title="В роботі" 
-            value={stats.active} 
-            icon={<Clock className="text-yellow-500 w-3.5 h-3.5" />} 
-            color="bg-yellow-50"
-            ultraCompact
-          />
-          <StatCard 
-            title="Увага!" 
-            value={stats.urgent} 
-            icon={<AlertTriangle className="text-red-500 w-3.5 h-3.5" />} 
-            color="bg-red-50"
-            alert={stats.urgent > 0}
-            ultraCompact
-          />
-          <StatCard 
-            title="Закрито" 
-            value={stats.closed} 
-            icon={<CheckCircle2 className="text-green-500 w-3.5 h-3.5" />} 
-            color="bg-green-50"
-            ultraCompact
-          />
-        </div>
+        {/* FIRST ROW: METRICS + ANALYTICS (5x compressed analytics) */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+          {/* Metrics Cards - 4 columns */}
+          <div className="md:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+            <StatCard 
+              title="Всього заявок" 
+              value={stats.total} 
+              icon={<Activity className="text-blue-500 w-3.5 h-3.5" />} 
+              color="bg-blue-50"
+              ultraCompact
+            />
+            <StatCard 
+              title="В роботі" 
+              value={stats.active} 
+              icon={<Clock className="text-yellow-500 w-3.5 h-3.5" />} 
+              color="bg-yellow-50"
+              ultraCompact
+            />
+            <StatCard 
+              title="Увага!" 
+              value={stats.urgent} 
+              icon={<AlertTriangle className="text-red-500 w-3.5 h-3.5" />} 
+              color="bg-red-50"
+              alert={stats.urgent > 0}
+              ultraCompact
+            />
+            <StatCard 
+              title="Закрито" 
+              value={stats.closed} 
+              icon={<CheckCircle2 className="text-green-500 w-3.5 h-3.5" />} 
+              color="bg-green-50"
+              ultraCompact
+            />
+          </div>
 
-        {/* ANALYTICS SECTION - VERY COMPACT (4x compression) */}
-        {todayTickets.length > 0 && (
-          <div className="bg-white/70 backdrop-blur-xl rounded-lg shadow border border-white/50 p-3 max-w-md">
-            <h3 className="text-xs font-bold text-gray-800 mb-2 flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
-              Аналітика за сьогодні
-            </h3>
-            <div className="flex items-center gap-3">
-              <div className="h-20 w-20 relative flex-shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={typeData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={25}
-                      outerRadius={35}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {typeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-xs font-bold text-gray-800">{todayTickets.length}</span>
+          {/* Analytics - 1 column (5x compressed) */}
+          {todayTickets.length > 0 && (
+            <div className="md:col-span-1 bg-white/70 backdrop-blur-xl rounded-lg shadow border border-white/50 p-2">
+              <h3 className="text-[10px] font-bold text-gray-800 mb-1.5 flex items-center gap-0.5">
+                <TrendingUp className="w-3 h-3 text-blue-600" />
+                Аналітика
+              </h3>
+              <div className="flex flex-col gap-1">
+                <div className="h-12 w-12 relative flex-shrink-0 mx-auto">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={typeData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={15}
+                        outerRadius={22}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {typeData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="text-[8px] font-bold text-gray-800">{todayTickets.length}</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-0.5 justify-center">
+                  {typeData.slice(0, 3).map((entry, index) => (
+                    <div key={entry.name} className="flex items-center gap-0.5 text-[9px] bg-gray-100 px-1 py-0.5 rounded">
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                      <span className="text-gray-700">{entry.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-1">
-                {typeData.map((entry, index) => (
-                  <div key={entry.name} className="flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                    <span className="text-gray-700">{entry.name}</span>
-                    <span className="text-gray-500">({entry.value})</span>
-                  </div>
-                ))}
-              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* FULL-WIDTH TABLE */}
         <div className="bg-white/70 backdrop-blur-xl rounded-xl shadow-lg border border-white/50 overflow-hidden flex flex-col">

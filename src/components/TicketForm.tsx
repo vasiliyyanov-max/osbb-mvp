@@ -76,18 +76,26 @@ export default function TicketForm() {
 
       if (res.ok) {
         const data = await res.json();
+        console.log('✅ Отримано відповідь від API:', data);
+        
         const ticketId = data.id || 'N/A';
         
+        // Очищаємо форму
         setText('');
         setApartment('');
         setPhone('');
         
-        alert(`✅ Заявку прийнято!\n\nНомер заявки: ${ticketId}\n\nНайближчим часом з вами зв'яжеться спеціаліст.`);
+        // Показуємо повідомлення з номером
+        setTimeout(() => {
+          alert(`✅ Заявку прийнято!\n\nНомер заявки: ${ticketId}\n\nНайближчим часом з вами зв'яжеться спеціаліст.`);
+        }, 100);
+        
       } else {
-        setError('Помилка при відправці заявки. Спробуйте ще раз.');
+        const errorData = await res.json().catch(() => ({}));
+        setError(errorData.error || 'Помилка при відправці заявки. Спробуйте ще раз.');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('❌ Помилка мережі:', error);
       setError('Помилка при відправці заявки. Спробуйте ще раз.');
     } finally {
       setLoading(false);
