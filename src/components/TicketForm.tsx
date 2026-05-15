@@ -9,6 +9,7 @@ export default function TicketForm() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [ticketId, setTicketId] = useState('');
 
   // Функція перевірки на абракадабру
   const isGibberish = (text: string): boolean => {
@@ -54,6 +55,7 @@ export default function TicketForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setTicketId('');
 
     // Перевірка на абракадабру
     if (isGibberish(text)) {
@@ -75,10 +77,13 @@ export default function TicketForm() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        const id = data.id || ticketId || 'N/A';
+        setTicketId(id);
         setText('');
         setApartment('');
         setPhone('');
-        alert('✅ Заявку прийнято! Найближчим часом з вами зв\'яжеться спеціаліст.');
+        alert(`✅ Заявку прийнято!\n\nНомер заявки: ${id}\n\nНайближчим часом з вами зв'яжеться спеціаліст.`);
       } else {
         setError('Помилка при відправці заявки. Спробуйте ще раз.');
       }
@@ -97,7 +102,8 @@ export default function TicketForm() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
             <Send className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">ОСББ Помічник</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-1">ОСББ Помічник</h1>
+          <p className="text-sm text-gray-600 mb-3">адреса: вул. Садова будинок 15</p>
           <p className="text-gray-600">Опишіть проблему — AI допоможе її вирішити</p>
         </div>
 
