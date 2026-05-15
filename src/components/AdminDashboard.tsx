@@ -196,60 +196,56 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* METRICS CARDS - COMPACT */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* METRICS CARDS - VERY COMPACT (2x compression) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           <StatCard 
             title="Всього заявок" 
             value={stats.total} 
-            icon={<Activity className="text-blue-500 w-4 h-4" />} 
-            trend="+12%" 
+            icon={<Activity className="text-blue-500 w-3.5 h-3.5" />} 
             color="bg-blue-50"
-            compact
+            ultraCompact
           />
           <StatCard 
             title="В роботі" 
             value={stats.active} 
-            icon={<Clock className="text-yellow-500 w-4 h-4" />} 
-            trend="Активно" 
+            icon={<Clock className="text-yellow-500 w-3.5 h-3.5" />} 
             color="bg-yellow-50"
-            compact
+            ultraCompact
           />
           <StatCard 
             title="Увага!" 
             value={stats.urgent} 
-            icon={<AlertTriangle className="text-red-500 w-4 h-4" />} 
-            trend="Критично" 
+            icon={<AlertTriangle className="text-red-500 w-3.5 h-3.5" />} 
             color="bg-red-50"
             alert={stats.urgent > 0}
-            compact
+            ultraCompact
           />
           <StatCard 
             title="Закрито" 
             value={stats.closed} 
-            icon={<CheckCircle2 className="text-green-500 w-4 h-4" />} 
-            trend="+5%" 
+            icon={<CheckCircle2 className="text-green-500 w-3.5 h-3.5" />} 
             color="bg-green-50"
-            compact
+            ultraCompact
           />
         </div>
 
-        {/* ANALYTICS SECTION - COMPACT */}
+        {/* ANALYTICS SECTION - VERY COMPACT (4x compression) */}
         {todayTickets.length > 0 && (
-          <div className="bg-white/70 backdrop-blur-xl rounded-xl shadow-lg border border-white/50 p-4">
-            <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-blue-600" />
+          <div className="bg-white/70 backdrop-blur-xl rounded-lg shadow border border-white/50 p-3 max-w-md">
+            <h3 className="text-xs font-bold text-gray-800 mb-2 flex items-center gap-1">
+              <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
               Аналітика за сьогодні
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="h-32 relative">
+            <div className="flex items-center gap-3">
+              <div className="h-20 w-20 relative flex-shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={typeData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={35}
-                      outerRadius={50}
+                      innerRadius={25}
+                      outerRadius={35}
                       paddingAngle={5}
                       dataKey="value"
                     >
@@ -261,14 +257,14 @@ export default function AdminDashboard() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-lg font-bold text-gray-800">{todayTickets.length}</span>
+                  <span className="text-xs font-bold text-gray-800">{todayTickets.length}</span>
                 </div>
               </div>
-              <div className="md:col-span-2 flex flex-wrap gap-1.5 content-center">
+              <div className="flex flex-wrap gap-1">
                 {typeData.map((entry, index) => (
-                  <div key={entry.name} className="flex items-center gap-1.5 text-xs bg-gray-100 px-2.5 py-1.5 rounded">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                    <span className="capitalize text-gray-700 font-medium">{entry.name}</span>
+                  <div key={entry.name} className="flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                    <span className="text-gray-700">{entry.name}</span>
                     <span className="text-gray-500">({entry.value})</span>
                   </div>
                 ))}
@@ -291,6 +287,7 @@ export default function AdminDashboard() {
               <thead className="bg-gray-50/50 sticky top-0 z-10 backdrop-blur-md">
                 <tr>
                   <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Дата</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">№ Заявки</th>
                   <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Заявка</th>
                   <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Пріоритет</th>
                   <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">AI Тип</th>
@@ -308,13 +305,11 @@ export default function AdminDashboard() {
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                       {formatDate(ticket.created_at)}
                     </td>
+                    <td className="px-4 py-3 text-xs font-mono font-semibold text-gray-700 whitespace-nowrap">
+                      {ticket.id}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-start gap-2">
-                        <div className={`mt-0.5 w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${
-                          ticket.classification.priority === 'високий' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
-                        }`}>
-                          #{ticket.id.split('-')[1].slice(-4)}
-                        </div>
                         <div>
                           <p className="text-xs font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
                             {ticket.classification.summary}
@@ -379,23 +374,21 @@ export default function AdminDashboard() {
 }
 
 // Helper Components
-function StatCard({ title, value, icon, trend, color, alert, compact }: any) {
-  if (compact) {
+function StatCard({ title, value, icon, color, alert, ultraCompact }: any) {
+  if (ultraCompact) {
     return (
-      <div className={`relative overflow-hidden p-3 rounded-xl border border-white/50 shadow-sm transition-all hover:shadow-md ${color}`}>
-        <div className="flex justify-between items-start mb-2">
-          <div className={`p-1.5 rounded-lg bg-white shadow-sm`}>
+      <div className={`relative overflow-hidden p-2 rounded-lg border border-white/50 shadow-sm transition-all hover:shadow-md ${color}`}>
+        <div className="flex justify-between items-start mb-1">
+          <div className={`p-1 rounded bg-white shadow-sm`}>
             {icon}
           </div>
           {alert && (
-            <span className="animate-pulse inline-flex h-2 w-2 rounded-full bg-red-500"></span>
+            <span className="animate-pulse inline-flex h-1.5 w-1.5 rounded-full bg-red-500"></span>
           )}
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500">{title}</p>
-          <div className="flex items-baseline gap-1 mt-0.5">
-            <p className="text-2xl font-extrabold text-gray-900">{value}</p>
-          </div>
+          <p className="text-[10px] font-medium text-gray-500 leading-tight">{title}</p>
+          <p className="text-xl font-extrabold text-gray-900 mt-0.5">{value}</p>
         </div>
       </div>
     );
@@ -415,11 +408,6 @@ function StatCard({ title, value, icon, trend, color, alert, compact }: any) {
         <p className="text-sm font-medium text-gray-500">{title}</p>
         <div className="flex items-baseline gap-2 mt-1">
           <p className="text-3xl font-extrabold text-gray-900">{value}</p>
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-             alert ? 'bg-red-100 text-red-700' : 'bg-white/50 text-gray-600'
-          }`}>
-            {trend}
-          </span>
         </div>
       </div>
     </div>

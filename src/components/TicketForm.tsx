@@ -9,7 +9,6 @@ export default function TicketForm() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [ticketId, setTicketId] = useState('');
 
   // Функція перевірки на абракадабру
   const isGibberish = (text: string): boolean => {
@@ -55,7 +54,6 @@ export default function TicketForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setTicketId('');
 
     // Перевірка на абракадабру
     if (isGibberish(text)) {
@@ -78,12 +76,13 @@ export default function TicketForm() {
 
       if (res.ok) {
         const data = await res.json();
-        const id = data.id || ticketId || 'N/A';
-        setTicketId(id);
+        const ticketId = data.id || 'N/A';
+        
         setText('');
         setApartment('');
         setPhone('');
-        alert(`✅ Заявку прийнято!\n\nНомер заявки: ${id}\n\nНайближчим часом з вами зв'яжеться спеціаліст.`);
+        
+        alert(`✅ Заявку прийнято!\n\nНомер заявки: ${ticketId}\n\nНайближчим часом з вами зв'яжеться спеціаліст.`);
       } else {
         setError('Помилка при відправці заявки. Спробуйте ще раз.');
       }
