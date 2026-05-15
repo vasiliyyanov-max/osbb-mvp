@@ -23,3 +23,6 @@ export interface AIClassifiedTicket {
   status: 'нова' | 'в_роботі' | 'закрита';
   created_at: string;
 }
+
+// Alias для сумісності з tickets-store.ts
+  export type Ticket = AIClassifiedTicket;
