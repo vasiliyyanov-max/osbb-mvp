@@ -8,8 +8,7 @@ import {
   Clock, 
   TrendingUp, 
   Loader2,
-  FileText,
-  Download
+  FileText
 } from 'lucide-react';
 import { 
   PieChart, 
@@ -36,7 +35,6 @@ interface Ticket {
 export default function AdminDashboard() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showReport, setShowReport] = useState(false);
 
   useEffect(() => {
     fetchTickets();
@@ -47,41 +45,32 @@ export default function AdminDashboard() {
   const fetchTickets = async () => {
     try {
       const res = await fetch('/api/tickets');
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
       const data = await res.json();
-      setTickets(data.tickets);
+      setTickets(Array.isArray(data.tickets) ? data.tickets : []);
       setLoading(false);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching tickets:', error);
+      setTickets([]);
       setLoading(false);
     }
   };
 
   const updateStatus = async (id: string, newStatus: Ticket['status']) => {
-    await fetch('/api/tickets', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, status: newStatus }),
-    });
-    fetchTickets();
-  };
-
-  // Генерація звіту за день
-  const generateDailyReport = () => {
-    const today = new Date().toDateString();
-    const todayTickets = tickets.filter(t => new Date(t.created_at).toDateString() === today);
-    
-    const stats = {
-      total: todayTickets.length,
-      emergency: todayTickets.filter(t => t.classification.priority === 'високий').length,
-      closed: todayTickets.filter(t => t.status === 'закрита').length,
-      byType: {} as Record<string, number>
-    };
-
-    todayTickets.forEach(t => {
-      stats.byType[t.classification.type] = (stats.byType[t.classification.type] || 0) + 1;
-    });
-
-    return stats;
+    try {
+      await fetch('/api/tickets', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: newStatus }),
+      });
+      fetchTickets();
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
   };
 
   // Статистика для графіків
@@ -90,36 +79,14 @@ export default function AdminDashboard() {
 
   const typeData = Object.values(
     todayTickets.reduce((acc, t) => {
-      acc[t.classification.type] = acc[t.classification.type] || { name: t.classification.type, value: 0 };
-      acc[t.classification.type].value++;
+      const type = t.classification?.type || 'Невідомо';
+      acc[type] = acc[type] || { name: type, value: 0 };
+      acc[type].value++;
       return acc;
     }, {} as Record<string, { name: string; value: number }>)
   );
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
-
-  const stats = getDailyStats();
-
-  function getDailyStats() {
-    return {
-      total: tickets.length,
-      active: tickets.filter(t => t.status === 'в_роботі').length,
-      urgent: tickets.filter(t => t.classification.priority === 'високий' && t.status !== 'закрита').length,
-      closed: tickets.filter(t => t.status === 'закрита').length,
-    };
-  }
-
-  // Форматування дати
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('uk-UA', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   if (loading) {
     return (
@@ -129,9 +96,16 @@ export default function AdminDashboard() {
     );
   }
 
+  const stats = {
+    total: tickets.length,
+    active: tickets.filter(t => t.status === 'в_роботі').length,
+    urgent: tickets.filter(t => t.classification?.priority === 'високий' && t.status !== 'закрита').length,
+    closed: tickets.filter(t => t.status === 'закрита').length,
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 text-gray-800 font-sans p-4 md:p-6">
-      <div className="max-w-[1800px] mx-auto space-y-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 text-gray-800 font-sans p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         
         {/* HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -139,115 +113,97 @@ export default function AdminDashboard() {
             <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
               Панель <span className="text-blue-600">ОСББ</span>
             </h1>
-            <p className="text-sm text-gray-600 mt-0.5">адреса: вул. Садова будинок 15</p>
+            <p className="text-gray-500 mt-1 text-sm">AI-асистент керування заявками</p>
           </div>
           <div className="flex gap-2">
             <button 
-              onClick={() => setShowReport(!showReport)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium hover:bg-gray-50 transition shadow-sm"
+              onClick={() => {
+                const today = new Date().toLocaleDateString('uk-UA');
+                const total = tickets.filter(t => new Date(t.created_at).toDateString() === new Date().toDateString()).length;
+                const urgent = tickets.filter(t => 
+                  new Date(t.created_at).toDateString() === new Date().toDateString() && 
+                  t.classification?.priority === 'високий'
+                ).length;
+                const closed = tickets.filter(t => 
+                  new Date(t.created_at).toDateString() === new Date().toDateString() && 
+                  t.status === 'закрита'
+                ).length;
+                
+                alert(`📊 ЗВІТ ЗА СЬОГОДНІ (${today})\n\n` +
+                      `📋 Всього заявок: ${total}\n` +
+                      `🚨 Аварій (високий пріоритет): ${urgent}\n` +
+                      `✅ Закрито: ${closed}\n` +
+                      `⏳ В роботі: ${total - closed}`);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm"
             >
-              <FileText size={16} className="text-blue-600" />
-              {showReport ? 'Сховати звіт' : 'Звіт за день'}
+              <FileText size={18} className="text-blue-600" />
+              Звіт за день
             </button>
             <button 
               onClick={fetchTickets}
-              className="p-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition shadow-sm"
+              className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition shadow-sm"
             >
-              <Activity className="w-4 h-4 text-gray-600" />
+              <Activity className="w-5 h-5 text-gray-600" />
             </button>
           </div>
         </div>
 
-        {/* REPORT SECTION */}
-        {showReport && (
-          <div className="bg-white/70 backdrop-blur-xl rounded-xl shadow-lg border border-white/50 p-4">
-            <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
-              <Download className="text-blue-600 w-4 h-4" /> 
-              Звіт за сьогодні ({new Date().toLocaleDateString('uk-UA')})
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="text-xs text-blue-600 font-medium">Всього заявок</div>
-                <div className="text-xl font-bold text-blue-900">{generateDailyReport().total}</div>
-              </div>
-              <div className="bg-red-50 p-3 rounded-lg">
-                <div className="text-xs text-red-600 font-medium">Аварії (Високий пріоритет)</div>
-                <div className="text-xl font-bold text-red-900">{generateDailyReport().emergency}</div>
-              </div>
-              <div className="bg-green-50 p-3 rounded-lg">
-                <div className="text-xs text-green-600 font-medium">Закрито</div>
-                <div className="text-xl font-bold text-green-900">{generateDailyReport().closed}</div>
-              </div>
-              <div className="bg-purple-50 p-3 rounded-lg">
-                <div className="text-xs text-purple-600 font-medium">Активність</div>
-                <div className="text-xl font-bold text-purple-900">
-                  {generateDailyReport().total > 0 ? 'Висока' : 'Низька'}
-                </div>
-              </div>
-            </div>
-            <div className="text-xs text-gray-600">
-              <strong>Розподіл по типах:</strong>{' '}
-              {Object.entries(generateDailyReport().byType).map(([type, count]) => (
-                <span key={type} className="mr-2 bg-gray-100 px-2 py-1 rounded text-xs font-medium">
-                  {type}: {count}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* TOP CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard 
+            title="Всього заявок" 
+            value={stats.total} 
+            icon={<Activity className="text-blue-500" />} 
+            trend="+12%" 
+            color="bg-blue-50"
+          />
+          <StatCard 
+            title="В роботі" 
+            value={stats.active} 
+            icon={<Clock className="text-yellow-500" />} 
+            trend="Активно" 
+            color="bg-yellow-50"
+          />
+          <StatCard 
+            title="Увага!" 
+            value={stats.urgent} 
+            icon={<AlertTriangle className="text-red-500" />} 
+            trend="Критично" 
+            color="bg-red-50"
+            alert={stats.urgent > 0}
+          />
+          <StatCard 
+            title="Закрито" 
+            value={stats.closed} 
+            icon={<CheckCircle2 className="text-green-500" />} 
+            trend="+5%" 
+            color="bg-green-50"
+          />
+        </div>
 
-        {/* FIRST ROW: METRICS + ANALYTICS (5x compressed analytics) */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-          {/* Metrics Cards - 4 columns */}
-          <div className="md:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-2">
-            <StatCard 
-              title="Всього заявок" 
-              value={stats.total} 
-              icon={<Activity className="text-blue-500 w-3.5 h-3.5" />} 
-              color="bg-blue-50"
-              ultraCompact
-            />
-            <StatCard 
-              title="В роботі" 
-              value={stats.active} 
-              icon={<Clock className="text-yellow-500 w-3.5 h-3.5" />} 
-              color="bg-yellow-50"
-              ultraCompact
-            />
-            <StatCard 
-              title="Увага!" 
-              value={stats.urgent} 
-              icon={<AlertTriangle className="text-red-500 w-3.5 h-3.5" />} 
-              color="bg-red-50"
-              alert={stats.urgent > 0}
-              ultraCompact
-            />
-            <StatCard 
-              title="Закрито" 
-              value={stats.closed} 
-              icon={<CheckCircle2 className="text-green-500 w-3.5 h-3.5" />} 
-              color="bg-green-50"
-              ultraCompact
-            />
-          </div>
-
-          {/* Analytics - 1 column (5x compressed) */}
-          {todayTickets.length > 0 && (
-            <div className="md:col-span-1 bg-white/70 backdrop-blur-xl rounded-lg shadow border border-white/50 p-2">
-              <h3 className="text-[10px] font-bold text-gray-800 mb-1.5 flex items-center gap-0.5">
-                <TrendingUp className="w-3 h-3 text-blue-600" />
-                Аналітика
+        {/* MAIN CONTENT GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* CHARTS COLUMN */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-lg border border-white/50 p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                Аналітика за сьогодні
               </h3>
-              <div className="flex flex-col gap-1">
-                <div className="h-12 w-12 relative flex-shrink-0 mx-auto">
-                  <ResponsiveContainer width="100%" height="100%">
+              
+              <div className="space-y-8">
+                <div className="h-64 w-full relative" style={{ minHeight: '256px' }}>
+                   <p className="text-sm text-gray-500 font-medium mb-2 text-center">Розподіл по типах</p>
+                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={typeData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={15}
-                        outerRadius={22}
+                        innerRadius={60}
+                        outerRadius={80}
                         paddingAngle={5}
                         dataKey="value"
                       >
@@ -259,152 +215,151 @@ export default function AdminDashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="text-[8px] font-bold text-gray-800">{todayTickets.length}</span>
+                    <span className="text-3xl font-bold text-gray-800">{todayTickets.length}</span>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-0.5 justify-center">
-                  {typeData.slice(0, 3).map((entry, index) => (
-                    <div key={entry.name} className="flex items-center gap-0.5 text-[9px] bg-gray-100 px-1 py-0.5 rounded">
-                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                      <span className="text-gray-700">{entry.value}</span>
+
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {typeData.map((entry, index) => (
+                    <div key={entry.name} className="flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded-md">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                      <span className="capitalize text-gray-600">{entry.name}</span>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* FULL-WIDTH TABLE */}
-        <div className="bg-white/70 backdrop-blur-xl rounded-xl shadow-lg border border-white/50 overflow-hidden flex flex-col">
-          <div className="px-4 py-3 border-b border-gray-100 bg-white/40 flex justify-between items-center">
-            <h3 className="font-bold text-gray-800 text-sm">Останні заявки</h3>
-            <button onClick={fetchTickets} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-              <Activity className="w-4 h-4 text-gray-500" />
-            </button>
           </div>
-          
-          <div className="overflow-y-auto max-h-[500px]">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50/50 sticky top-0 z-10 backdrop-blur-md">
-                <tr>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Дата</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">№ Заявки</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Заявка</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Пріоритет</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">AI Тип</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Статус</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {tickets
-                  .sort((a, b) => {
-                    const p = { 'високий': 0, 'середній': 1, 'низький': 2 };
-                    return (p[a.classification.priority as keyof typeof p] || 3) - (p[b.classification.priority as keyof typeof p] || 3);
-                  })
-                  .map((ticket) => {
-  // ✅ Безпечний фолбек, якщо AI ще не встиг класифікувати
-  const c = ticket.classification || {
-    type: 'Інфо_запит',
-    priority: 'низький',
-    summary: 'Очікує обробки',
-    object: '—'
-  };
 
-  return (
-    <tr key={ticket.id} className="group hover:bg-blue-50/50 transition-colors">
-      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-        {formatDate(ticket.created_at)}
-      </td>
-      <td className="px-4 py-3 text-xs font-mono font-semibold text-gray-700 whitespace-nowrap">
-        {ticket.id}
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex items-start gap-2">
-          <div>
-            <p className="text-xs font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-              {c.summary}
-            </p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Кв: <span className="font-mono font-medium">{ticket.apartment || '—'}</span>
-            </p>
-          </div>
-        </div>
-      </td>
-      
-      <td className="px-4 py-3">
-        <PriorityBadge priority={c.priority} />
-      </td>
-
-      <td className="px-4 py-3">
-        <div className="group/tooltip relative">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100 cursor-help">
-            🤖 {c.type}
-          </span>
-          <div className="absolute left-0 bottom-full mb-1 hidden group-hover/tooltip:block w-64 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-20">
-            <div className="font-semibold mb-1 text-purple-300">Повний текст заявки:</div>
-            <div className="text-gray-100">{ticket.text || '—'}</div>
-            <div className="absolute left-2 bottom-0 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
-          </div>
-        </div>
-      </td>
-
-      <td className="px-4 py-3">
-        <select
-          value={ticket.status}
-          onChange={(e) => updateStatus(ticket.id, e.target.value as Ticket['status'])}
-          className={`text-xs font-semibold py-1 pl-2 pr-6 rounded border-0 cursor-pointer focus:ring-2 focus:ring-blue-500 appearance-none bg-no-repeat bg-[right_0.3rem_center] bg-[length:0.8em_0.8em] ${
-            ticket.status === 'закрита' ? 'bg-green-50 text-green-700' :
-            ticket.status === 'в_роботі' ? 'bg-yellow-50 text-yellow-700' :
-            'bg-gray-50 text-gray-600'
-          }`}
-          style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
-        >
-          <option value="нова">Нова</option>
-          <option value="в_роботі">В роботі</option>
-          <option value="закрита">Закрита</option>
-        </select>
-      </td>
-    </tr>
-  );
-})}
-              </tbody>
-            </table>
-            
-            {tickets.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-                <CheckCircle2 className="w-10 h-10 mb-2 opacity-20" />
-                <p className="text-sm">Немає активних заявок</p>
+          {/* TABLE COLUMN */}
+            {/* TABLE COLUMN */}
+          <div className="lg:col-span-2">
+            <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-lg border border-white/50 overflow-hidden flex flex-col h-[600px]">
+              <div className="px-6 py-4 border-b border-gray-100 bg-white/40 flex justify-between items-center">
+                <h3 className="font-bold text-gray-800">Останні заявки</h3>
+                <button onClick={fetchTickets} className="p-2 hover:bg-gray-100 rounded-lg transition">
+                  <Activity className="w-4 h-4 text-gray-500" />
+                </button>
               </div>
-            )}
+              
+              <div className="overflow-y-auto flex-1">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-50/50 sticky top-0 z-10 backdrop-blur-md">
+                    <tr>
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Заявка</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Пріоритет</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">AI Тип</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Статус</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {tickets
+                      .sort((a, b) => {
+                        // Спочатку високий пріоритет, потім середній, потім низький
+                        const priorityOrder = { 
+                          'високий': 0, 
+                          'середній': 1, 
+                          'низький': 2 
+                        };
+                        
+                        const priorityA = a.classification?.priority || 'низький';
+                        const priorityB = b.classification?.priority || 'низький';
+                        
+                        const orderA = priorityOrder[priorityA as keyof typeof priorityOrder] ?? 3;
+                        const orderB = priorityOrder[priorityB as keyof typeof priorityOrder] ?? 3;
+                        
+                        return orderA - orderB;
+                      })
+                      .map((ticket) => {
+                        const c = ticket.classification || {
+                          type: 'Невідомо',
+                          priority: 'низький',
+                          summary: 'Без опису',
+                          object: '—'
+                        };
+                        
+                        return (
+                          <tr key={ticket.id} className="group hover:bg-blue-50/50 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-start gap-3">
+                                <div className={`mt-1 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                                  c.priority === 'високий' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
+                                }`}>
+                                  #{ticket.id.split('-')[1].slice(-4)}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                                    {c.summary}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Квартира: <span className="font-mono font-medium">{ticket.apartment || '—'}</span> • {c.object}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            
+                            <td className="px-6 py-4">
+                              <PriorityBadge priority={c.priority} />
+                            </td>
+
+                            <td className="px-6 py-4">
+                              {/* TOOLTIP */}
+                              <div className="group/tooltip relative inline-block">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100 cursor-help">
+                                  🤖 {c.type}
+                                </span>
+                                {/* Tooltip content */}
+                                <div className="absolute left-0 bottom-full mb-2 hidden group-hover/tooltip:block w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50">
+                                  <div className="font-semibold mb-2 text-purple-300 border-b border-gray-700 pb-1">
+                                    Повний текст заявки:
+                                  </div>
+                                  <div className="text-gray-100 leading-relaxed">
+                                    {ticket.text || 'Текст відсутній'}
+                                  </div>
+                                  <div className="absolute left-3 bottom-0 transform translate-y-1/2 -translate-x-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="px-6 py-4">
+                              <select
+                                value={ticket.status}
+                                onChange={(e) => updateStatus(ticket.id, e.target.value as Ticket['status'])}
+                                className={`text-xs font-semibold py-1.5 pl-3 pr-8 rounded-lg border-0 cursor-pointer focus:ring-2 focus:ring-blue-500 appearance-none bg-no-repeat bg-[right_0.5rem_center] bg-[length:1em_1em] ${
+                                  ticket.status === 'закрита' ? 'bg-green-50 text-green-700' :
+                                  ticket.status === 'в_роботі' ? 'bg-yellow-50 text-yellow-700' :
+                                  'bg-gray-50 text-gray-600'
+                                }`}
+                                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
+                              >
+                                <option value="нова">Нова</option>
+                                <option value="в_роботі">В роботі</option>
+                                <option value="закрита">Закрита</option>
+                              </select>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+                
+                {tickets.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                    <CheckCircle2 className="w-12 h-12 mb-3 opacity-20" />
+                    <p>Немає активних заявок</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+         </div>
       </div>
     </div>
   );
 }
 
 // Helper Components
-function StatCard({ title, value, icon, color, alert, ultraCompact }: any) {
-  if (ultraCompact) {
-    return (
-      <div className={`relative overflow-hidden p-2 rounded-lg border border-white/50 shadow-sm transition-all hover:shadow-md ${color}`}>
-        <div className="flex justify-between items-start mb-1">
-          <div className={`p-1 rounded bg-white shadow-sm`}>
-            {icon}
-          </div>
-          {alert && (
-            <span className="animate-pulse inline-flex h-1.5 w-1.5 rounded-full bg-red-500"></span>
-          )}
-        </div>
-        <div>
-          <p className="text-[10px] font-medium text-gray-500 leading-tight">{title}</p>
-          <p className="text-xl font-extrabold text-gray-900 mt-0.5">{value}</p>
-        </div>
-      </div>
-    );
-  }
-  
+function StatCard({ title, value, icon, trend, color, alert }: any) {
   return (
     <div className={`relative overflow-hidden p-6 rounded-2xl border border-white/50 shadow-sm transition-all hover:shadow-md ${color}`}>
       <div className="flex justify-between items-start mb-4">
@@ -419,6 +374,11 @@ function StatCard({ title, value, icon, color, alert, ultraCompact }: any) {
         <p className="text-sm font-medium text-gray-500">{title}</p>
         <div className="flex items-baseline gap-2 mt-1">
           <p className="text-3xl font-extrabold text-gray-900">{value}</p>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+             alert ? 'bg-red-100 text-red-700' : 'bg-white/50 text-gray-600'
+          }`}>
+            {trend}
+          </span>
         </div>
       </div>
     </div>
@@ -434,7 +394,7 @@ function PriorityBadge({ priority }: { priority: string }) {
   const style = styles[priority as keyof typeof styles] || styles['низький'];
   
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${style}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${style}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${
         priority === 'високий' ? 'bg-red-500' : priority === 'середній' ? 'bg-amber-500' : 'bg-green-500'
       }`} />
