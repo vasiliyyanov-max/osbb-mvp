@@ -232,7 +232,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* TABLE COLUMN */}
-            {/* TABLE COLUMN */}
+                   {/* TABLE COLUMN */}
           <div className="lg:col-span-2">
             <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-lg border border-white/50 overflow-hidden flex flex-col h-[600px]">
               <div className="px-6 py-4 border-b border-gray-100 bg-white/40 flex justify-between items-center">
@@ -246,6 +246,8 @@ export default function AdminDashboard() {
                 <table className="w-full text-left">
                   <thead className="bg-gray-50/50 sticky top-0 z-10 backdrop-blur-md">
                     <tr>
+                      {/* ✅ ДОДАНО КОЛОНКУ ДАТИ */}
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Дата та час</th>
                       <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Заявка</th>
                       <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Пріоритет</th>
                       <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">AI Тип</th>
@@ -255,19 +257,11 @@ export default function AdminDashboard() {
                   <tbody className="divide-y divide-gray-100">
                     {tickets
                       .sort((a, b) => {
-                        // Спочатку високий пріоритет, потім середній, потім низький
-                        const priorityOrder = { 
-                          'високий': 0, 
-                          'середній': 1, 
-                          'низький': 2 
-                        };
-                        
+                        const priorityOrder = { 'високий': 0, 'середній': 1, 'низький': 2 };
                         const priorityA = a.classification?.priority || 'низький';
                         const priorityB = b.classification?.priority || 'низький';
-                        
                         const orderA = priorityOrder[priorityA as keyof typeof priorityOrder] ?? 3;
                         const orderB = priorityOrder[priorityB as keyof typeof priorityOrder] ?? 3;
-                        
                         return orderA - orderB;
                       })
                       .map((ticket) => {
@@ -280,6 +274,17 @@ export default function AdminDashboard() {
                         
                         return (
                           <tr key={ticket.id} className="group hover:bg-blue-50/50 transition-colors">
+                            {/* ✅ ДОДАНО ЯЧІЙКУ З ДАТОЮ */}
+                            <td className="px-6 py-4 text-xs text-gray-500 whitespace-nowrap">
+                              {new Date(ticket.created_at).toLocaleString('uk-UA', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </td>
+                            
                             <td className="px-6 py-4">
                               <div className="flex items-start gap-3">
                                 <div className={`mt-1 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
@@ -308,7 +313,6 @@ export default function AdminDashboard() {
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100 cursor-help">
                                   🤖 {c.type}
                                 </span>
-                                {/* Tooltip content */}
                                 <div className="absolute left-0 bottom-full mb-2 hidden group-hover/tooltip:block w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50">
                                   <div className="font-semibold mb-2 text-purple-300 border-b border-gray-700 pb-1">
                                     Повний текст заявки:
