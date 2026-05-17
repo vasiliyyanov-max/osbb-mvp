@@ -1,44 +1,23 @@
-// src/lib/openai.ts
-import Groq from 'groq-sdk';
+import OpenAI from 'openai';
 
-const groq = new Groq({
+// Инициализация Groq (совместим с OpenAI SDK)
+export const openai = new OpenAI({
+  baseURL: 'https://api.groq.com/openai/v1',
   apiKey: process.env.GROQ_API_KEY,
 });
 
-export async function classifyTicket(text: string) {
-  try {
-    const response = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
-      messages: [
-        {
-          role: 'system',
-          content: `Ти AI-асистент для класифікації заявок ОСББ. Поверни ТІЛЬКИ JSON:
+// Системный промпт для классификации
+export const SYSTEM_PROMPT = `Ти асистент голови ОСББ. Проаналізуй повідомлення мешканця та поверни ТІЛЬКИ валідний JSON за схемою:
 {
-  "type": "Аварія" | "Поломка" | "Скарга" | "Інфо_запит",
-  "priority": "високий" | "середній" | "низький",
-  "summary": "короткий опис (2-3 слова)",
-  "object": "об'єкт (труба, ліфт, світло тощо)"
-}`
-        },
-        { role: 'user', content: text }
-      ],
-      temperature: 0.3,
-      max_tokens: 150,
-      response_format: { type: 'json_object' }
-    });
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) throw new Error('Empty AI response');
-
-    const parsed = JSON.parse(content);
-    return {
-      type: parsed.type || 'Інфо_запит',
-      priority: parsed.priority || 'низький',
-      summary: parsed.summary || text.slice(0, 40),
-      object: parsed.object || 'інше'
-    };
-  } catch (error) {
-    console.error('AI Error:', error);
-    return { type: 'Інфо_запит', priority: 'низький', summary: text.slice(0, 40), object: 'інше' };
-  }
+  "type": "аварія|поломка|скарга|інфо_запит|пропозиція",
+  "priority": "високий|середній|низький",
+  "summary": "короткий опис проблеми одним реченням (макс. 15 слів)",
+  "apartment": "номер квартири або null",
+  "object": "елемент інфраструктури або null",
+  "requires_action": true
 }
+
+Правила:
+- Якщо немає квартири → null
+- Якщо аварія (вода, газ, ліфт, світло, опалення) → priority: "високий"
+- Тільки JSON, без markdown, без пояснень.`;

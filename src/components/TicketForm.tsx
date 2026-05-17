@@ -10,43 +10,34 @@ export default function TicketForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Функція перевірки на абракадабру
+  // Перевірка на абракадабру
   const isGibberish = (text: string): boolean => {
     const cleanText = text.toLowerCase().trim();
     
     // Занадто короткий текст
     if (cleanText.length < 5) return true;
     
-    // Перевірка на надмірну кількість однакових символів поспіль
+    // Перевірка на надмірну кількість однакових символів
     const repeatedChars = /(.)\1{4,}/.test(cleanText);
     if (repeatedChars) return true;
     
-    // Перевірка на співвідношення голосних/приголосних
+    // Перевірка голосних/приголосних
     const vowels = 'аеєиіїоуюяaeiouy';
-    const consonants = 'бвгґджзжйклмнпрстфхцчшщbcdfghjklmnpqrstvwxz';
-    
     let vowelCount = 0;
     let consonantCount = 0;
     
     for (const char of cleanText) {
       if (vowels.includes(char)) vowelCount++;
-      else if (consonants.includes(char)) consonantCount++;
+      else if (/[бвгґджзжйклмнпрстфхцчшщbcdfghjklmnpqrstvwxz]/.test(char)) {
+        consonantCount++;
+      }
     }
     
-    // Якщо голосних менше 15% або більше 70% — підозріло
     const totalLetters = vowelCount + consonantCount;
     if (totalLetters > 0) {
       const vowelRatio = vowelCount / totalLetters;
       if (vowelRatio < 0.15 || vowelRatio > 0.70) return true;
     }
-    
-    // Занадто багато цифр (>60%)
-    const digitCount = cleanText.replace(/\D/g, '').length;
-    if (digitCount / cleanText.length > 0.6) return true;
-    
-    // Занадто багато спецсимволів (>40%)
-    const specialChars = cleanText.replace(/[а-яa-z0-9\s]/gi, '').length;
-    if (specialChars / cleanText.length > 0.4) return true;
     
     return false;
   };
@@ -55,9 +46,8 @@ export default function TicketForm() {
     e.preventDefault();
     setError('');
 
-    // Перевірка на абракадабру
     if (isGibberish(text)) {
-      setError('❌ Це не розбірливий текст. Будь ласка, введіть зрозуміле повідомлення українською або російською мовою.');
+      setError('❌ Це не розбірливий текст. Будь ласка, введіть зрозуміле повідомлення.');
       return;
     }
 
@@ -67,36 +57,19 @@ export default function TicketForm() {
       const res = await fetch('/api/ticket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text,
-          apartment,
-          phone,
-        }),
+        body: JSON.stringify({ text, apartment, phone }),
       });
 
       if (res.ok) {
-        const data = await res.json();
-        console.log('✅ Отримано відповідь від API:', data);
-        
-        const ticketId = data.id || 'N/A';
-        
-        // Очищаємо форму
         setText('');
         setApartment('');
         setPhone('');
-        
-        // Показуємо повідомлення з номером
-        setTimeout(() => {
-          alert(`✅ Заявку прийнято!\n\nНомер заявки: ${ticketId}\n\nНайближчим часом з вами зв'яжеться спеціаліст.`);
-        }, 100);
-        
+        alert('✅ Заявку прийнято!\n\nНайближчим часом з вами зв\'яжеться спеціаліст.');
       } else {
-        const errorData = await res.json().catch(() => ({}));
-        setError(errorData.error || 'Помилка при відправці заявки. Спробуйте ще раз.');
+        setError('Помилка при відправці заявки.');
       }
     } catch (error) {
-      console.error('❌ Помилка мережі:', error);
-      setError('Помилка при відправці заявки. Спробуйте ще раз.');
+      setError('Помилка при відправці заявки.');
     } finally {
       setLoading(false);
     }
@@ -109,9 +82,8 @@ export default function TicketForm() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
             <Send className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">ОСББ Помічник</h1>
-          <p className="text-sm text-gray-600 mb-3">адреса: вул. Садова будинок 15</p>
-          <p className="text-gray-600">Опишіть проблему — AI допоможе її вирішити</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">ОСББ Помічник</h1>
+          <p className="text-gray-600">Опишіть проблему, AI автоматично її обробить</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -122,7 +94,7 @@ export default function TicketForm() {
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Наприклад: Прорвало трубу в ванній, затопило сусідів..."
+              placeholder="Наприклад: Ліфт не працює..."
               required
               rows={4}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
@@ -132,14 +104,13 @@ export default function TicketForm() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Квартира *
+                Квартира
               </label>
               <input
                 type="text"
                 value={apartment}
                 onChange={(e) => setApartment(e.target.value)}
                 placeholder="45"
-                required
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -166,7 +137,7 @@ export default function TicketForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
           >
             {loading ? (
               <>

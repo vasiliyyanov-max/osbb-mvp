@@ -1,48 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { openai, SYSTEM_PROMPT } from '@/lib/openai';
 import { ticketsStore } from '@/lib/tickets-store';
-import { classifyTicket } from '@/lib/openai';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { text, apartment, phone } = body;
+    const { text, apartment, contact } = body;
 
     if (!text || text.trim().length < 5) {
       return NextResponse.json(
-        { error: 'Текст занадто короткий або відсутній' },
+        { error: 'Текст занадто короткий' },
         { status: 400 }
       );
     }
 
-    // Створюємо заявку
-    const ticket = ticketsStore.create({
-      text,
-      apartment,
-      phone,
+    const completion = await openai.chat.completions.create({
+      model: 'llama-3.1-8b-instant',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: `Повідомлення мешканця: "${text}"` }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.2,
     });
 
-    // AI класифікація (асинхронно, не блокуємо відповідь)
-    classifyTicket(text)
-      .then((classification) => {
-        ticketsStore.updateClassification(ticket.id, classification);
-        console.log(`🤖 AI класифікація для заявки ${ticket.id}:`, classification);
-      })
-      .catch((err) => {
-        console.error('❌ Помилка AI класифікації:', err);
-      });
+    const aiResponse = completion.choices[0].message.content;
+    const classifiedTicket = aiResponse ? JSON.parse(aiResponse) : null;
 
-    console.log(`✅ Нова заявка створена: ${ticket.id}`);
-    
-    // ПОВЕРТАЄМО ID!
-    return NextResponse.json({ 
-      id: ticket.id,
-      message: 'Заявку прийнято'
-    }, { status: 201 });
+    console.log('🤖 Groq AI классификация:', classifiedTicket);
 
-  } catch (error) {
-    console.error('❌ Помилка створення заявки:', error);
+    // Сохраняем заявку
+    const savedTicket = ticketsStore.create({
+      text,
+      apartment: apartment || '',
+      contact: contact || '',
+      classification: classifiedTicket,
+    });
+
+    console.log('💾 Заявка сохранена:', savedTicket.id);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Заявку успішно створено',
+      ticket_id: savedTicket.id,
+      classification: classifiedTicket,
+    });
+
+  } catch (error: any) {
+    console.error('❌ Ticket API error:', error);
     return NextResponse.json(
-      { error: 'Внутрішня помилка сервера' },
+      { error: 'Не вдалося створити заявку: ' + error.message },
       { status: 500 }
     );
   }
