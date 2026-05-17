@@ -46,10 +46,78 @@ export default function TicketForm() {
     e.preventDefault();
     setError('');
 
-    if (isGibberish(text)) {
-      setError('❌ Це не розбірливий текст. Будь ласка, введіть зрозуміле повідомлення.');
-      return;
+
+
+  // Перевірка на абракадабру
+  const isGibberish = (text: string): boolean => {
+    const cleanText = text.toLowerCase().trim();
+    
+    // 1. Занадто короткий текст (менше 10 символів)
+    if (cleanText.length < 10) {
+      console.log('❌ Занадто короткий');
+      return true;
     }
+    
+    // 2. Перевірка на надмірну кількість однакових символів поспіль
+    const repeatedChars = /(.)\1{3,}/.test(cleanText);
+    if (repeatedChars) {
+      console.log('❌ Багато однакових символів');
+      return true;
+    }
+    
+    // 3. Перевірка співвідношення голосних/приголосних
+    const vowels = 'аеєиіїоуюяaeiouyаеёиоуыэюя';
+    const consonants = 'бвгґджзжйклмнпрстфхцчшщbcdfghjklmnpqrstvwxz';
+    
+    let vowelCount = 0;
+    let consonantCount = 0;
+    let otherCount = 0;
+    
+    for (const char of cleanText) {
+      if (vowels.includes(char)) vowelCount++;
+      else if (consonants.includes(char)) consonantCount++;
+      else otherCount++;
+    }
+    
+    const totalLetters = vowelCount + consonantCount;
+    
+    // Якщо більше 40% цифр або спецсимволів — це абракадабра
+    if (totalLetters > 0 && otherCount / cleanText.length > 0.4) {
+      console.log('❌ Багато цифр/символів');
+      return true;
+    }
+    
+    // Перевірка співвідношення голосних/приголосних
+    if (totalLetters > 0) {
+      const vowelRatio = vowelCount / totalLetters;
+      // Нормальне співвідношення: 30-50% голосних
+      if (vowelRatio < 0.20 || vowelRatio > 0.60) {
+        console.log('❌ Неправильне співвідношення голосних');
+        return true;
+      }
+    }
+    
+    // 4. Перевірка на випадковий набір слів (менше 3 слів)
+    const words = cleanText.split(/\s+/).filter(w => w.length > 0);
+    if (words.length < 3) {
+      console.log('❌ Замало слів');
+      return true;
+    }
+    
+    // 5. Перевірка на повторюваність слів
+    const uniqueWords = new Set(words);
+    if (words.length > 5 && uniqueWords.size / words.length < 0.3) {
+      console.log('❌ Багато повторень');
+      return true;
+    }
+    
+    console.log('✅ Текст валідний');
+    return false;
+  };
+
+
+
+
 
     setLoading(true);
 

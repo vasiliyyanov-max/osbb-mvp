@@ -290,7 +290,8 @@ export default function AdminDashboard() {
                                 <div className={`mt-1 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
                                   c.priority === 'високий' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
                                 }`}>
-                                  #{ticket.id.split('-')[1].slice(-4)}
+                                  #{ticket.id && ticket.id.includes('-') ? ticket.id.split('-')[1]?.slice(-4) : ticket.id?.slice(-4) || 'N/A'}
+                                
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
